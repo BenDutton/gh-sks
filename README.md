@@ -117,6 +117,7 @@ ssh-ed25519 AAAA... github:defunkt
 | `sudo gh-sks` | Run a key sync now |
 | `sudo gh-sks --add <linux_user> <github_user>` | Add a mapping to the config file |
 | `sudo gh-sks --remove <linux_user> <github_user>` | Remove a mapping from the config file |
+| `gh-sks --list` | List all configured mappings |
 | `sudo gh-sks --update` | Update gh-sks to the latest release |
 | `sudo gh-sks --uninstall` | Fully remove gh-sks from this system |
 | `gh-sks --version` | Print the installed version |

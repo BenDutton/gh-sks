@@ -62,6 +62,7 @@ Sync GitHub users' public SSH keys into Linux authorized_keys files.
 Options:
   --add <linux_user> <github_user>     Add a mapping to the config file
   --remove <linux_user> <github_user>  Remove a mapping from the config file
+  --list                               List all configured mappings
   --update                             Update gh-sks to the latest release
   --uninstall                          Fully remove gh-sks from this system
   --version                            Print the installed version
@@ -69,6 +70,31 @@ Options:
 
 With no options, syncs keys according to the config file.
 USAGE
+    exit 0
+fi
+
+# ---------------------------------------------------------------------------
+# --list
+# ---------------------------------------------------------------------------
+if [[ "${1:-}" == "--list" ]]; then
+    if [[ ! -f "${CONFIG_FILE}" ]]; then
+        log_error "Config file not found: ${CONFIG_FILE}"
+        exit 1
+    fi
+
+    mapfile -t ENTRIES < <(grep -vE '^\s*(#|$)' "${CONFIG_FILE}")
+
+    if [[ ${#ENTRIES[@]} -eq 0 ]]; then
+        echo "No mappings configured."
+        exit 0
+    fi
+
+    printf '%-20s %s\n' "LINUX USER" "GITHUB USER"
+    printf '%-20s %s\n' "----------" "-----------"
+    for entry in "${ENTRIES[@]}"; do
+        read -r linux_user github_user <<< "${entry}"
+        printf '%-20s %s\n' "${linux_user}" "${github_user}"
+    done
     exit 0
 fi
 
