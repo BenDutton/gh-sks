@@ -3,7 +3,7 @@
 # install.sh — One-line installer for gh-sks
 #
 # Usage:
-#   curl -fsSL https://raw.githubusercontent.com/BenDutton/gh-sks/main/install.sh | sudo bash
+#   curl -fsSL https://github.com/BenDutton/gh-sks/releases/latest/download/install.sh | sudo bash
 #
 
 set -euo pipefail
@@ -19,7 +19,8 @@ fi
 # ---------------------------------------------------------------------------
 # Configuration
 # ---------------------------------------------------------------------------
-REPO_RAW_URL="https://raw.githubusercontent.com/BenDutton/gh-sks/main"
+GH_REPO="BenDutton/gh-sks"
+RELEASE_URL="https://github.com/${GH_REPO}/releases/latest/download"
 INSTALL_DIR="/usr/local/bin"
 INSTALL_PATH="${INSTALL_DIR}/gh-sks"
 CONFIG_DIR="/etc/gh-sks"
@@ -34,8 +35,8 @@ log() { echo "==> $*"; }
 # ---------------------------------------------------------------------------
 # 1. Download the sync script
 # ---------------------------------------------------------------------------
-log "Downloading gh-sks.sh to ${INSTALL_PATH}"
-curl -fsSL "${REPO_RAW_URL}/gh-sks.sh" -o "${INSTALL_PATH}"
+log "Downloading gh-sks from latest release to ${INSTALL_PATH}"
+curl -fsSL -L "${RELEASE_URL}/gh-sks.sh" -o "${INSTALL_PATH}"
 chmod 755 "${INSTALL_PATH}"
 log "Installed ${INSTALL_PATH}"
 

@@ -5,20 +5,6 @@ html {
   scroll-padding-top: 60px;
 }
 
-/* Hero install command box */
-.install-box {
-  max-width: 720px;
-}
-
-.install-box pre {
-  background: #1c2128;
-  border: 1px solid var(--bs-border-color);
-  border-radius: 0.5rem;
-  padding: 1rem 1.25rem;
-  font-size: 0.95rem;
-  text-align: left;
-}
-
 /* Code blocks */
 pre {
   background: #1c2128;

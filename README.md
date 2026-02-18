@@ -15,7 +15,7 @@ Multiple GitHub users can be mapped to the same Linux user, and the same GitHub 
 Run the one-liner as **root** (or with `sudo`):
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/BenDutton/gh-sks/main/install.sh | sudo bash
+curl -fsSL https://github.com/BenDutton/gh-sks/releases/latest/download/install.sh | sudo bash
 ```
 
 This will:
@@ -104,7 +104,13 @@ To update `gh-sks` to the latest version:
 sudo gh-sks --update
 ```
 
-This downloads the latest script from the repository and replaces itself in-place. Your config and systemd timer are not affected.
+This downloads the latest release from GitHub and replaces itself in-place. Your config and systemd timer are not affected.
+
+Check the installed version:
+
+```bash
+gh-sks --version
+```
 
 ## Uninstall
 
