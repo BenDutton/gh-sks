@@ -36,6 +36,20 @@ Then run a manual sync to verify everything works:
 sudo gh-sks
 ```
 
+## Managing Mappings
+
+You can edit the config file directly, or use the built-in CLI helpers:
+
+```bash
+# Add a mapping
+sudo gh-sks --add azureuser octocat
+
+# Remove a mapping
+sudo gh-sks --remove azureuser octocat
+```
+
+After adding or removing mappings, run `sudo gh-sks` to apply changes immediately (or wait for the next hourly sync).
+
 ## Configuration
 
 ### `/etc/gh-sks/github_authorized_users`
@@ -96,26 +110,14 @@ ssh-ed25519 AAAA... github:defunkt
 - **systemd**
 - Network access to `github.com`
 
-## Update
+## CLI Reference
 
-To update `gh-sks` to the latest version:
-
-```bash
-sudo gh-sks --update
-```
-
-This downloads the latest release from GitHub and replaces itself in-place. Your config and systemd timer are not affected.
-
-Check the installed version:
-
-```bash
-gh-sks --version
-```
-
-## Uninstall
-
-To fully remove gh-sks, including the systemd timer, config, managed key blocks, and the script itself:
-
-```bash
-sudo gh-sks --uninstall
-```
+| Command | Description |
+|---------|-------------|
+| `sudo gh-sks` | Run a key sync now |
+| `sudo gh-sks --add <linux_user> <github_user>` | Add a mapping to the config file |
+| `sudo gh-sks --remove <linux_user> <github_user>` | Remove a mapping from the config file |
+| `sudo gh-sks --update` | Update gh-sks to the latest release |
+| `sudo gh-sks --uninstall` | Fully remove gh-sks from this system |
+| `gh-sks --version` | Print the installed version |
+| `gh-sks --help` | Show help message |

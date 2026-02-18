@@ -51,6 +51,88 @@ if [[ "${1:-}" == "--version" ]]; then
 fi
 
 # ---------------------------------------------------------------------------
+# --help
+# ---------------------------------------------------------------------------
+if [[ "${1:-}" == "--help" || "${1:-}" == "-h" ]]; then
+    cat <<'USAGE'
+Usage: gh-sks [OPTION]
+
+Sync GitHub users' public SSH keys into Linux authorized_keys files.
+
+Options:
+  --add <linux_user> <github_user>     Add a mapping to the config file
+  --remove <linux_user> <github_user>  Remove a mapping from the config file
+  --update                             Update gh-sks to the latest release
+  --uninstall                          Fully remove gh-sks from this system
+  --version                            Print the installed version
+  --help, -h                           Show this help message
+
+With no options, syncs keys according to the config file.
+USAGE
+    exit 0
+fi
+
+# ---------------------------------------------------------------------------
+# --add <linux_user> <github_user>
+# ---------------------------------------------------------------------------
+if [[ "${1:-}" == "--add" ]]; then
+    if [[ "$(id -u)" -ne 0 ]]; then
+        log_error "--add must be run as root (use sudo)."
+        exit 1
+    fi
+    if [[ -z "${2:-}" || -z "${3:-}" ]]; then
+        log_error "Usage: gh-sks --add <linux_user> <github_user>"
+        exit 1
+    fi
+    LINUX_USER="$2"
+    GITHUB_USER="$3"
+
+    mkdir -p "$(dirname "${CONFIG_FILE}")"
+    touch "${CONFIG_FILE}"
+
+    # Check for duplicate
+    if grep -qE "^\s*${LINUX_USER}\s+${GITHUB_USER}\s*$" "${CONFIG_FILE}"; then
+        log_warn "Mapping already exists: ${LINUX_USER} ${GITHUB_USER}"
+        exit 0
+    fi
+
+    echo "${LINUX_USER} ${GITHUB_USER}" >> "${CONFIG_FILE}"
+    log_info "Added mapping: ${LINUX_USER} <- github:${GITHUB_USER}"
+    exit 0
+fi
+
+# ---------------------------------------------------------------------------
+# --remove <linux_user> <github_user>
+# ---------------------------------------------------------------------------
+if [[ "${1:-}" == "--remove" ]]; then
+    if [[ "$(id -u)" -ne 0 ]]; then
+        log_error "--remove must be run as root (use sudo)."
+        exit 1
+    fi
+    if [[ -z "${2:-}" || -z "${3:-}" ]]; then
+        log_error "Usage: gh-sks --remove <linux_user> <github_user>"
+        exit 1
+    fi
+    LINUX_USER="$2"
+    GITHUB_USER="$3"
+
+    if [[ ! -f "${CONFIG_FILE}" ]]; then
+        log_error "Config file not found: ${CONFIG_FILE}"
+        exit 1
+    fi
+
+    if ! grep -qE "^\s*${LINUX_USER}\s+${GITHUB_USER}\s*$" "${CONFIG_FILE}"; then
+        log_warn "Mapping not found: ${LINUX_USER} ${GITHUB_USER}"
+        exit 1
+    fi
+
+    sed -i "/^\s*${LINUX_USER}\s\+${GITHUB_USER}\s*$/d" "${CONFIG_FILE}"
+    log_info "Removed mapping: ${LINUX_USER} <- github:${GITHUB_USER}"
+    log_info "Run 'sudo gh-sks' to apply changes immediately."
+    exit 0
+fi
+
+# ---------------------------------------------------------------------------
 # Self-update
 # ---------------------------------------------------------------------------
 if [[ "${1:-}" == "--update" ]]; then
