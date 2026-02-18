@@ -3,7 +3,7 @@
 # install.sh — One-line installer for gh-sks
 #
 # Usage:
-#   curl -fsSL https://raw.githubusercontent.com/BenDutton/gh-sks/main/install.sh | sudo bash -s -- <username>
+#   curl -fsSL https://raw.githubusercontent.com/BenDutton/gh-sks/main/install.sh | sudo bash
 #
 
 set -euo pipefail
@@ -17,30 +17,13 @@ if [[ "$(id -u)" -ne 0 ]]; then
 fi
 
 # ---------------------------------------------------------------------------
-# Target user
-# ---------------------------------------------------------------------------
-TARGET_USER="${1:-}"
-if [[ -z "${TARGET_USER}" ]]; then
-    echo "ERROR: You must specify a target username." >&2
-    echo "Usage: curl -fsSL <url>/install.sh | sudo bash -s -- <username>" >&2
-    exit 1
-fi
-
-if ! id "${TARGET_USER}" &>/dev/null; then
-    echo "ERROR: User '${TARGET_USER}' does not exist on this system." >&2
-    exit 1
-fi
-
-TARGET_HOME="$(eval echo "~${TARGET_USER}")"
-
-# ---------------------------------------------------------------------------
 # Configuration
 # ---------------------------------------------------------------------------
 REPO_RAW_URL="https://raw.githubusercontent.com/BenDutton/gh-sks/main"
 INSTALL_DIR="/usr/local/bin"
 INSTALL_PATH="${INSTALL_DIR}/gh-sks"
-SSH_DIR="${TARGET_HOME}/.ssh"
-USERS_FILE="${SSH_DIR}/github_authorized_users"
+CONFIG_DIR="/etc/gh-sks"
+CONFIG_FILE="${CONFIG_DIR}/github_authorized_users"
 CRON_JOB="0 * * * * /usr/local/bin/gh-sks >> /var/log/gh-sks.log 2>&1"
 CRON_MARKER="# gh-sks"
 
@@ -58,57 +41,57 @@ chmod 755 "${INSTALL_PATH}"
 log "Installed ${INSTALL_PATH}"
 
 # ---------------------------------------------------------------------------
-# 2. Create the authorized users file if it doesn't exist
+# 2. Create the config file if it doesn't exist
 # ---------------------------------------------------------------------------
-if [[ ! -f "${USERS_FILE}" ]]; then
-    log "Creating ${USERS_FILE}"
-    mkdir -p "${SSH_DIR}"
-    chmod 700 "${SSH_DIR}"
-    chown "${TARGET_USER}:${TARGET_USER}" "${SSH_DIR}"
-    cat > "${USERS_FILE}" <<'EOF'
-# github_authorized_users
+if [[ ! -f "${CONFIG_FILE}" ]]; then
+    log "Creating ${CONFIG_FILE}"
+    mkdir -p "${CONFIG_DIR}"
+    cat > "${CONFIG_FILE}" <<'EOF'
+# /etc/gh-sks/github_authorized_users
 #
-# List GitHub usernames whose public SSH keys should be synced
-# into ~/.ssh/authorized_keys on this machine.
+# Maps Linux users to GitHub usernames whose public SSH keys should
+# be synced into that user's ~/.ssh/authorized_keys.
 #
-# One username per line. Blank lines and comments (lines starting
-# with #) are ignored.
+# Format: <linux_user> <github_username>
+# One mapping per line. Blank lines and comments (lines starting
+# with #) are ignored. A GitHub user can be mapped to multiple
+# Linux users and vice versa.
 #
-# Example:
-# octocat
-# defunkt
+# Examples:
+# azureuser octocat
+# azureuser defunkt
+# deploy torvalds
 EOF
-    chmod 600 "${USERS_FILE}"
-    chown "${TARGET_USER}:${TARGET_USER}" "${USERS_FILE}"
-    log "Created ${USERS_FILE} — add GitHub usernames to it."
+    chmod 644 "${CONFIG_FILE}"
+    log "Created ${CONFIG_FILE} — add user mappings to it."
 else
-    log "${USERS_FILE} already exists — skipping."
+    log "${CONFIG_FILE} already exists — skipping."
 fi
 
 # ---------------------------------------------------------------------------
-# 3. Install hourly cron job (idempotent, survives reboots)
+# 3. Install hourly cron job under root (idempotent, survives reboots)
 # ---------------------------------------------------------------------------
 # cron jobs persist across reboots by default since they are stored in the
 # crontab file, not in memory.
-CURRENT_CRONTAB="$(crontab -u "${TARGET_USER}" -l 2>/dev/null || true)"
+CURRENT_CRONTAB="$(crontab -l 2>/dev/null || true)"
 
 if echo "${CURRENT_CRONTAB}" | grep -qF "gh-sks"; then
-    log "Cron job already exists for '${TARGET_USER}' — skipping."
+    log "Cron job already exists — skipping."
 else
-    log "Installing hourly cron job for '${TARGET_USER}'"
-    (echo "${CURRENT_CRONTAB}"; echo "${CRON_JOB} ${CRON_MARKER}") | crontab -u "${TARGET_USER}" -
-    log "Cron job installed (runs every hour on the hour)."
+    log "Installing hourly cron job"
+    (echo "${CURRENT_CRONTAB}"; echo "${CRON_JOB} ${CRON_MARKER}") | crontab -
+    log "Cron job installed (runs every hour on the hour as root)."
 fi
 
 # ---------------------------------------------------------------------------
 # 4. Done
 # ---------------------------------------------------------------------------
 echo ""
-log "Installation complete for user '${TARGET_USER}'!"
+log "Installation complete!"
 echo ""
 echo "Next steps:"
-echo "  1. Edit ${USERS_FILE} and add GitHub usernames (one per line)"
-echo "  2. Run a test sync:  sudo -u ${TARGET_USER} gh-sks"
+echo "  1. Edit ${CONFIG_FILE} and add mappings (format: <linux_user> <github_username>)"
+echo "  2. Run a test sync:  sudo gh-sks"
 echo ""
 echo "The cron job will sync keys automatically every hour."
 echo "Logs are written to /var/log/gh-sks.log"

@@ -2,17 +2,18 @@
 #
 # gh-sks.sh
 #
-# Retrieves public SSH keys from GitHub for each user listed in
-# ~/.ssh/github_authorized_users and syncs them into ~/.ssh/authorized_keys.
+# Retrieves public SSH keys from GitHub for each entry in the config file
+# and syncs them into the corresponding Linux user's ~/.ssh/authorized_keys.
 #
-# Designed to be run periodically via cron.
+# Designed to be run periodically via cron (as root).
 #
 # Usage:
-#   ./gh-sks.sh
+#   gh-sks
 #
 # Configuration:
-#   ~/.ssh/github_authorized_users  — one GitHub username per line
-#                                      blank lines and lines starting with # are ignored
+#   /etc/gh-sks/github_authorized_users  — one mapping per line:
+#       <linux_user> <github_username>
+#   Blank lines and lines starting with # are ignored.
 #
 
 set -euo pipefail
@@ -20,9 +21,7 @@ set -euo pipefail
 # ---------------------------------------------------------------------------
 # Configuration
 # ---------------------------------------------------------------------------
-SSH_DIR="${HOME}/.ssh"
-AUTHORIZED_USERS_FILE="${SSH_DIR}/github_authorized_users"
-AUTHORIZED_KEYS_FILE="${SSH_DIR}/authorized_keys"
+CONFIG_FILE="/etc/gh-sks/github_authorized_users"
 MARKER_BEGIN="# --- BEGIN gh-sks managed keys ---"
 MARKER_END="# --- END gh-sks managed keys ---"
 GITHUB_API_URL="https://github.com"
@@ -38,112 +37,127 @@ log_error() { echo "${LOG_PREFIX} ERROR: $*" >&2; }
 # ---------------------------------------------------------------------------
 # Pre-flight checks
 # ---------------------------------------------------------------------------
-if [[ ! -f "${AUTHORIZED_USERS_FILE}" ]]; then
-    log_error "Users file not found: ${AUTHORIZED_USERS_FILE}"
-    log_error "Create it with one GitHub username per line."
+if [[ "$(id -u)" -ne 0 ]]; then
+    log_error "gh-sks must be run as root."
     exit 1
 fi
 
-# Ensure the .ssh directory and authorized_keys file exist with correct perms
-mkdir -p "${SSH_DIR}"
-chmod 700 "${SSH_DIR}"
-touch "${AUTHORIZED_KEYS_FILE}"
-chmod 600 "${AUTHORIZED_KEYS_FILE}"
+if [[ ! -f "${CONFIG_FILE}" ]]; then
+    log_error "Config file not found: ${CONFIG_FILE}"
+    log_error "Create it with lines in the format: <linux_user> <github_username>"
+    exit 1
+fi
 
-# Check for curl
 if ! command -v curl &>/dev/null; then
     log_error "curl is required but not installed."
     exit 1
 fi
 
 # ---------------------------------------------------------------------------
-# Read GitHub usernames (skip blanks and comments)
+# Read config (skip blanks and comments)
 # ---------------------------------------------------------------------------
-mapfile -t USERS < <(grep -vE '^\s*(#|$)' "${AUTHORIZED_USERS_FILE}")
+mapfile -t LINES < <(grep -vE '^\s*(#|$)' "${CONFIG_FILE}")
 
-if [[ ${#USERS[@]} -eq 0 ]]; then
-    log_warn "No users found in ${AUTHORIZED_USERS_FILE}. Nothing to sync."
+if [[ ${#LINES[@]} -eq 0 ]]; then
+    log_warn "No entries found in ${CONFIG_FILE}. Nothing to sync."
     exit 0
 fi
 
-log_info "Found ${#USERS[@]} user(s) to sync: ${USERS[*]}"
+log_info "Found ${#LINES[@]} mapping(s) to sync."
 
 # ---------------------------------------------------------------------------
-# Fetch keys from GitHub
+# Fetch keys from GitHub and group by Linux user
 # ---------------------------------------------------------------------------
-MANAGED_KEYS=""
+declare -A USER_KEYS
 
-for user in "${USERS[@]}"; do
-    # Trim whitespace
-    user="$(echo "${user}" | xargs)"
-    [[ -z "${user}" ]] && continue
+for line in "${LINES[@]}"; do
+    # Parse: <linux_user> <github_username>
+    read -r linux_user github_user <<< "${line}"
 
-    url="${GITHUB_API_URL}/${user}.keys"
-    log_info "Fetching keys for '${user}' from ${url}"
+    if [[ -z "${linux_user}" || -z "${github_user}" ]]; then
+        log_warn "Skipping malformed line: '${line}'"
+        continue
+    fi
+
+    # Verify the Linux user exists
+    if ! id "${linux_user}" &>/dev/null; then
+        log_warn "Linux user '${linux_user}' does not exist — skipping."
+        continue
+    fi
+
+    url="${GITHUB_API_URL}/${github_user}.keys"
+    log_info "Fetching keys for github:${github_user} -> ${linux_user} from ${url}"
 
     keys="$(curl -fsSL --max-time 10 "${url}" 2>/dev/null || true)"
 
     if [[ -z "${keys}" ]]; then
-        log_warn "No keys returned for user '${user}' — skipping."
+        log_warn "No keys returned for github user '${github_user}' — skipping."
         continue
     fi
 
-    # Count keys retrieved
     key_count="$(echo "${keys}" | wc -l | xargs)"
-    log_info "  -> Retrieved ${key_count} key(s) for '${user}'"
+    log_info "  -> Retrieved ${key_count} key(s) for github:${github_user}"
 
-    # Annotate each key with the GitHub username
+    # Annotate and accumulate keys per linux user
     while IFS= read -r key; do
         [[ -z "${key}" ]] && continue
-        MANAGED_KEYS+="${key} github:${user}"$'\n'
+        USER_KEYS["${linux_user}"]+="${key} github:${github_user}"$'\n'
     done <<< "${keys}"
 done
 
-if [[ -z "${MANAGED_KEYS}" ]]; then
-    log_warn "No keys were retrieved from GitHub. authorized_keys will not be modified."
+if [[ ${#USER_KEYS[@]} -eq 0 ]]; then
+    log_warn "No keys were retrieved from GitHub. No authorized_keys files will be modified."
     exit 0
 fi
 
 # ---------------------------------------------------------------------------
-# Rebuild authorized_keys
+# Update each Linux user's authorized_keys
 # ---------------------------------------------------------------------------
-# Strategy:
-#   1. Preserve any keys OUTSIDE the managed block (user's own keys).
-#   2. Replace the managed block with freshly-fetched keys.
+for linux_user in "${!USER_KEYS[@]}"; do
+    managed_keys="${USER_KEYS[${linux_user}]}"
+    user_home="$(eval echo "~${linux_user}")"
+    ssh_dir="${user_home}/.ssh"
+    auth_keys="${ssh_dir}/authorized_keys"
 
-TEMP_FILE="$(mktemp)"
-trap 'rm -f "${TEMP_FILE}"' EXIT
+    # Ensure .ssh dir and authorized_keys exist with correct perms
+    mkdir -p "${ssh_dir}"
+    chmod 700 "${ssh_dir}"
+    chown "${linux_user}:${linux_user}" "${ssh_dir}"
+    touch "${auth_keys}"
+    chmod 600 "${auth_keys}"
+    chown "${linux_user}:${linux_user}" "${auth_keys}"
 
-# Extract non-managed keys (everything outside the markers)
-if grep -qF "${MARKER_BEGIN}" "${AUTHORIZED_KEYS_FILE}"; then
-    # File has an existing managed block — strip it
-    sed "/${MARKER_BEGIN}/,/${MARKER_END}/d" "${AUTHORIZED_KEYS_FILE}" > "${TEMP_FILE}"
-else
-    # No managed block yet — keep everything
-    cp "${AUTHORIZED_KEYS_FILE}" "${TEMP_FILE}"
-fi
+    TEMP_FILE="$(mktemp)"
+    trap 'rm -f "${TEMP_FILE}"' EXIT
 
-# Remove trailing blank lines from preserved content
-sed -i -e :a -e '/^\n*$/{$d;N;ba' -e '}' "${TEMP_FILE}" 2>/dev/null || true
+    # Strip existing managed block if present
+    if grep -qF "${MARKER_BEGIN}" "${auth_keys}"; then
+        sed "/${MARKER_BEGIN}/,/${MARKER_END}/d" "${auth_keys}" > "${TEMP_FILE}"
+    else
+        cp "${auth_keys}" "${TEMP_FILE}"
+    fi
 
-# Append managed block
-{
-    # Add a blank line separator if the file is not empty
-    [[ -s "${TEMP_FILE}" ]] && echo ""
-    echo "${MARKER_BEGIN}"
-    echo "# Auto-generated — do not edit this section manually."
-    echo "# Last updated: $(date -u '+%Y-%m-%dT%H:%M:%SZ')"
-    echo "#"
-    printf '%s' "${MANAGED_KEYS}"
-    echo "${MARKER_END}"
-} >> "${TEMP_FILE}"
+    # Remove trailing blank lines
+    sed -i -e :a -e '/^\n*$/{$d;N;ba' -e '}' "${TEMP_FILE}" 2>/dev/null || true
 
-# Atomic replace
-mv "${TEMP_FILE}" "${AUTHORIZED_KEYS_FILE}"
-chmod 600 "${AUTHORIZED_KEYS_FILE}"
+    # Append managed block
+    {
+        [[ -s "${TEMP_FILE}" ]] && echo ""
+        echo "${MARKER_BEGIN}"
+        echo "# Auto-generated — do not edit this section manually."
+        echo "# Last updated: $(date -u '+%Y-%m-%dT%H:%M:%SZ')"
+        echo "#"
+        printf '%s' "${managed_keys}"
+        echo "${MARKER_END}"
+    } >> "${TEMP_FILE}"
 
-# ---------------------------------------------------------------------------
-# Summary
-# ---------------------------------------------------------------------------
-total="$(echo -n "${MANAGED_KEYS}" | grep -c '^' || true)"
-log_info "Sync complete. ${total} managed key(s) written to ${AUTHORIZED_KEYS_FILE}"
+    # Atomic replace
+    mv "${TEMP_FILE}" "${auth_keys}"
+    chmod 600 "${auth_keys}"
+    chown "${linux_user}:${linux_user}" "${auth_keys}"
+
+    total="$(echo -n "${managed_keys}" | grep -c '^' || true)"
+    log_info "Wrote ${total} managed key(s) to ${auth_keys}"
+done
+
+log_info "Sync complete."

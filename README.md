@@ -4,57 +4,51 @@ Automatically sync GitHub users' public SSH keys into your Linux server's `~/.ss
 
 ## How It Works
 
-1. Reads GitHub usernames from `~/.ssh/github_authorized_users` (one per line).
-2. Fetches each user's public keys from `https://github.com/<user>.keys`.
-3. Merges them into a **managed block** inside `~/.ssh/authorized_keys`, preserving any keys you've added manually outside the block.
+1. Reads user mappings from `/etc/gh-sks/github_authorized_users` (format: `<linux_user> <github_username>`).
+2. Fetches each GitHub user's public keys from `https://github.com/<user>.keys`.
+3. Merges them into a **managed block** inside the corresponding Linux user's `~/.ssh/authorized_keys`, preserving any keys added manually outside the block.
 
-Keys inside the managed block are replaced on every run, so adding or removing a username from the config file is all you need to grant or revoke access.
+Multiple GitHub users can be mapped to the same Linux user, and the same GitHub user can be mapped to multiple Linux users. Adding or removing a line from the config file is all you need to grant or revoke access.
 
 ## Install
 
-Run the one-liner as **root** (or with `sudo`), passing the target Linux username as an argument:
+Run the one-liner as **root** (or with `sudo`):
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/BenDutton/gh-sks/main/install.sh | sudo bash -s -- <username>
-```
-
-For example, to set up key syncing for `azureuser`:
-
-```bash
-curl -fsSL https://raw.githubusercontent.com/BenDutton/gh-sks/main/install.sh | sudo bash -s -- azureuser
+curl -fsSL https://raw.githubusercontent.com/BenDutton/gh-sks/main/install.sh | sudo bash
 ```
 
 This will:
 
 1. Download `gh-sks` to `/usr/local/bin/`.
-2. Create `~<username>/.ssh/github_authorized_users` if it doesn't already exist.
-3. Register an **hourly cron job** under the target user's crontab (persists across VM restarts).
+2. Create `/etc/gh-sks/github_authorized_users` if it doesn't already exist.
+3. Register an **hourly cron job** under root's crontab (persists across VM restarts).
 
-After running the installer, edit the users file and add the GitHub usernames you want to authorize:
+After running the installer, edit the config file and add your user mappings:
 
 ```bash
-nano ~/.ssh/github_authorized_users
+sudo nano /etc/gh-sks/github_authorized_users
 ```
 
 Then run a manual sync to verify everything works:
 
 ```bash
-sudo -u <username> gh-sks
+sudo gh-sks
 ```
 
 ## Configuration
 
-### `~/.ssh/github_authorized_users`
+### `/etc/gh-sks/github_authorized_users`
 
-A plain-text file with one GitHub username per line. Blank lines and lines starting with `#` are ignored.
+A plain-text file with one mapping per line in the format `<linux_user> <github_username>`. Blank lines and lines starting with `#` are ignored.
 
 ```
-# Team leads
-octocat
-defunkt
+# Grant azureuser access via two GitHub accounts
+azureuser octocat
+azureuser defunkt
 
-# Contractors
-torvalds
+# Separate deploy user
+deploy torvalds
 ```
 
 ## Cron
@@ -95,14 +89,14 @@ ssh-ed25519 AAAA... github:defunkt
 
 ```bash
 # Remove the cron job
-crontab -l | grep -v 'gh-sks' | crontab -
+sudo crontab -l | grep -v 'gh-sks' | sudo crontab -
 
 # Remove the script
 sudo rm /usr/local/bin/gh-sks
 
-# Remove the managed block from authorized_keys (between BEGIN/END markers),
-nano ~/.ssh/authorized_keys
+# Remove the config directory
+sudo rm -rf /etc/gh-sks
 
-# Optionally remove the users file
-rm ~/.ssh/github_authorized_users
+# Remove the managed block from each user's authorized_keys
+# (between the BEGIN/END markers), or leave them as-is
 ```
