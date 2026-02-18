@@ -12,17 +12,23 @@ Keys inside the managed block are replaced on every run, so adding or removing a
 
 ## Install
 
-Run the one-liner as **root** (or with `sudo`):
+Run the one-liner as **root** (or with `sudo`), passing the target Linux username as an argument:
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/BenDutton/gh-sks/main/install.sh | sudo bash
+curl -fsSL https://raw.githubusercontent.com/BenDutton/gh-sks/main/install.sh | sudo bash -s -- <username>
+```
+
+For example, to set up key syncing for `azureuser`:
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/BenDutton/gh-sks/main/install.sh | sudo bash -s -- azureuser
 ```
 
 This will:
 
 1. Download `gh-sks` to `/usr/local/bin/`.
-2. Create `~/.ssh/github_authorized_users` if it doesn't already exist.
-3. Register an **hourly cron job** that syncs keys automatically (persists across VM restarts).
+2. Create `~<username>/.ssh/github_authorized_users` if it doesn't already exist.
+3. Register an **hourly cron job** under the target user's crontab (persists across VM restarts).
 
 After running the installer, edit the users file and add the GitHub usernames you want to authorize:
 
@@ -33,7 +39,7 @@ nano ~/.ssh/github_authorized_users
 Then run a manual sync to verify everything works:
 
 ```bash
-sudo gh-sks
+sudo -u <username> gh-sks
 ```
 
 ## Configuration
