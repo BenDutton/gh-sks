@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="en" data-bs-theme="dark">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>gh-sks — GitHub SSH Key Sync</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" />
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+
+  <div class="container py-5">
+
+    <!-- ───────── Hero ───────── -->
+    <div class="text-center mb-5">
+      <h1 class="display-3 fw-bold text-success">gh-sks</h1>
+      <p class="lead text-body-secondary">GitHub SSH Key Sync for Linux Servers</p>
+      <p class="mx-auto text-body-secondary mb-4" style="max-width:600px">
+        Automatically sync GitHub users' public SSH keys into your server's
+        <code>~/.ssh/authorized_keys</code>. Runs unattended via a systemd
+        timer — hourly, with catch-up after reboots.
+      </p>
+
+      <!-- Install command -->
+      <div class="install-box mx-auto mb-4">
+        <pre class="mb-0"><code>curl -fsSL https://raw.githubusercontent.com/BenDutton/gh-sks/main/install.sh | sudo bash</code></pre>
+      </div>
+
+      <div class="d-flex gap-2 justify-content-center flex-wrap">
+        <a href="https://github.com/BenDutton/gh-sks#readme" class="btn btn-success btn-lg" target="_blank" rel="noopener">
+          Full Documentation
+        </a>
+        <a href="https://github.com/BenDutton/gh-sks" class="btn btn-outline-light btn-lg" target="_blank" rel="noopener">
+          View on GitHub
+        </a>
+      </div>
+    </div>
+
+    <!-- ───────── How It Works ───────── -->
+    <div class="row g-3 mb-5">
+      <div class="col-md-4">
+        <div class="card h-100 bg-body-tertiary">
+          <div class="card-body">
+            <span class="badge text-bg-success fs-5 mb-2">1</span>
+            <h5 class="card-title">Read mappings</h5>
+            <p class="card-text mb-0">
+              Reads user mappings from <code>/etc/gh-sks/github_authorized_users</code>.
+            </p>
+          </div>
+        </div>
+      </div>
+      <div class="col-md-4">
+        <div class="card h-100 bg-body-tertiary">
+          <div class="card-body">
+            <span class="badge text-bg-success fs-5 mb-2">2</span>
+            <h5 class="card-title">Fetch keys</h5>
+            <p class="card-text mb-0">
+              Fetches each GitHub user's public keys from
+              <code>github.com/&lt;user&gt;.keys</code>.
+            </p>
+          </div>
+        </div>
+      </div>
+      <div class="col-md-4">
+        <div class="card h-100 bg-body-tertiary">
+          <div class="card-body">
+            <span class="badge text-bg-success fs-5 mb-2">3</span>
+            <h5 class="card-title">Merge safely</h5>
+            <p class="card-text mb-0">
+              Merges keys into a managed block in <code>~/.ssh/authorized_keys</code>,
+              preserving any manually-added keys.
+            </p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ───────── Quick reference ───────── -->
+    <div class="row g-3 mb-5">
+      <div class="col-md-6">
+        <div class="card bg-body-tertiary h-100">
+          <div class="card-body">
+            <h5 class="card-title">Configuration</h5>
+            <pre class="mb-0"><code># /etc/gh-sks/github_authorized_users
+azureuser octocat
+azureuser defunkt
+deploy    torvalds</code></pre>
+          </div>
+        </div>
+      </div>
+      <div class="col-md-3">
+        <div class="card bg-body-tertiary h-100">
+          <div class="card-body">
+            <h5 class="card-title">Update</h5>
+            <pre class="mb-0"><code>sudo gh-sks --update</code></pre>
+          </div>
+        </div>
+      </div>
+      <div class="col-md-3">
+        <div class="card bg-body-tertiary h-100">
+          <div class="card-body">
+            <h5 class="card-title">Uninstall</h5>
+            <pre class="mb-0"><code>sudo gh-sks --uninstall</code></pre>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ───────── Requirements ───────── -->
+    <p class="text-center text-body-secondary mb-1">
+      Requires <strong>bash</strong> 4.0+, <strong>curl</strong>,
+      <strong>systemd</strong>, and network access to github.com.
+    </p>
+
+  </div>
+
+  <!-- ───────── Footer ───────── -->
+  <footer class="border-top py-4 text-center text-body-secondary">
+    <div class="container">
+      <p class="mb-0">
+        gh-sks is open-source —
+        <a href="https://github.com/BenDutton/gh-sks" target="_blank" rel="noopener">GitHub</a>
+      </p>
+    </div>
+  </footer>
+
+  <script src="https://ajax.googleapis.com/ajax/libs/bootstrap/5.3.3/js/bootstrap.min.js"></script>
+</body>
+</html>

@@ -1,0 +1,36 @@
+/* gh-sks docs — minimal overrides (Bootstrap handles the rest) */
+
+html {
+  scroll-behavior: smooth;
+  scroll-padding-top: 60px;
+}
+
+/* Hero install command box */
+.install-box {
+  max-width: 720px;
+}
+
+.install-box pre {
+  background: #1c2128;
+  border: 1px solid var(--bs-border-color);
+  border-radius: 0.5rem;
+  padding: 1rem 1.25rem;
+  font-size: 0.95rem;
+  text-align: left;
+}
+
+/* Code blocks */
+pre {
+  background: #1c2128;
+  border: 1px solid var(--bs-border-color);
+  border-radius: 0.5rem;
+  padding: 1rem 1.25rem;
+  overflow-x: auto;
+}
+
+pre code {
+  background: none;
+  padding: 0;
+  font-size: 0.85rem;
+  line-height: 1.55;
+}
