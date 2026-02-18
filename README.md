@@ -1,6 +1,6 @@
 # gh-sks (GitHub SSH Key Sync)
 
-Automatically sync GitHub users' public SSH keys into your Linux server's `~/.ssh/authorized_keys` file. Runs unattended via an **hourly cron job** that persists across reboots.
+Automatically sync GitHub users' public SSH keys into your Linux server's `~/.ssh/authorized_keys` file. Runs unattended via a **systemd timer** that fires hourly and catches up after reboots.
 
 ## How It Works
 
@@ -22,8 +22,7 @@ This will:
 
 1. Download `gh-sks` to `/usr/local/bin/`.
 2. Create `/etc/gh-sks/github_authorized_users` if it doesn't already exist.
-3. Register an **hourly cron job** under root's crontab (persists across VM restarts).
-4. Install a **logrotate** config to rotate `/var/log/gh-sks.log` weekly (4 weeks retained, compressed).
+3. Install and enable a **systemd timer** that runs hourly.
 
 After running the installer, edit the config file and add your user mappings:
 
@@ -52,17 +51,27 @@ azureuser defunkt
 deploy torvalds
 ```
 
-## Cron
+## Scheduling
 
-The installer sets up an hourly cron job automatically. Cron jobs are stored in the system crontab and persist across VM restarts — no additional configuration is needed.
+The installer sets up a **systemd timer** that runs `gh-sks` every hour. If the VM is off when a run is due, it fires immediately on boot (`Persistent=true`).
 
-To verify the job is installed:
+Check the timer status:
 
 ```bash
-crontab -l | grep gh-sks
+systemctl status gh-sks.timer
 ```
 
-Logs are written to `/var/log/gh-sks.log`. A logrotate config (`/etc/logrotate.d/gh-sks`) is installed automatically to rotate logs weekly and keep 4 compressed copies.
+View logs:
+
+```bash
+journalctl -u gh-sks
+```
+
+Manually trigger a sync:
+
+```bash
+sudo systemctl start gh-sks.service
+```
 
 ## How `authorized_keys` Is Managed
 
@@ -84,6 +93,7 @@ ssh-ed25519 AAAA... github:defunkt
 
 - **bash** (4.0+)
 - **curl**
+- **systemd**
 - Network access to `github.com`
 
 ## Update
@@ -94,11 +104,11 @@ To update `gh-sks` to the latest version:
 sudo gh-sks --update
 ```
 
-This downloads the latest script from the repository and replaces itself in-place. Your config and cron job are not affected.
+This downloads the latest script from the repository and replaces itself in-place. Your config and systemd timer are not affected.
 
 ## Uninstall
 
-To fully remove gh-sks, including the cron job, config, logrotate, managed key blocks, and the script itself:
+To fully remove gh-sks, including the systemd timer, config, managed key blocks, and the script itself:
 
 ```bash
 sudo gh-sks --uninstall

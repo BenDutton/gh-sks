@@ -24,8 +24,7 @@ INSTALL_DIR="/usr/local/bin"
 INSTALL_PATH="${INSTALL_DIR}/gh-sks"
 CONFIG_DIR="/etc/gh-sks"
 CONFIG_FILE="${CONFIG_DIR}/github_authorized_users"
-CRON_JOB="0 * * * * /usr/local/bin/gh-sks >> /var/log/gh-sks.log 2>&1"
-CRON_MARKER="# gh-sks"
+SYSTEMD_DIR="/etc/systemd/system"
 
 # ---------------------------------------------------------------------------
 # Helpers
@@ -69,44 +68,39 @@ else
 fi
 
 # ---------------------------------------------------------------------------
-# 3. Install hourly cron job under root (idempotent, survives reboots)
+# 3. Install systemd service and timer
 # ---------------------------------------------------------------------------
-# cron jobs persist across reboots by default since they are stored in the
-# crontab file, not in memory.
-CURRENT_CRONTAB="$(crontab -l 2>/dev/null || true)"
+log "Installing systemd service and timer"
 
-if echo "${CURRENT_CRONTAB}" | grep -qF "gh-sks"; then
-    log "Cron job already exists — skipping."
-else
-    log "Installing hourly cron job"
-    (echo "${CURRENT_CRONTAB}"; echo "${CRON_JOB} ${CRON_MARKER}") | crontab -
-    log "Cron job installed (runs every hour on the hour as root)."
-fi
+cat > "${SYSTEMD_DIR}/gh-sks.service" <<'EOF'
+[Unit]
+Description=GitHub SSH Key Sync (gh-sks)
+After=network-online.target
+Wants=network-online.target
 
-# ---------------------------------------------------------------------------
-# 4. Install logrotate config
-# ---------------------------------------------------------------------------
-LOGROTATE_FILE="/etc/logrotate.d/gh-sks"
-if [[ ! -f "${LOGROTATE_FILE}" ]]; then
-    log "Installing logrotate config at ${LOGROTATE_FILE}"
-    cat > "${LOGROTATE_FILE}" <<'EOF'
-/var/log/gh-sks.log {
-    weekly
-    rotate 4
-    compress
-    delaycompress
-    missingok
-    notifempty
-    create 0644 root root
-}
+[Service]
+Type=oneshot
+ExecStart=/usr/local/bin/gh-sks
 EOF
-    log "Logrotate config installed."
-else
-    log "${LOGROTATE_FILE} already exists — skipping."
-fi
+
+cat > "${SYSTEMD_DIR}/gh-sks.timer" <<'EOF'
+[Unit]
+Description=Run gh-sks hourly
+
+[Timer]
+OnCalendar=hourly
+Persistent=true
+
+[Install]
+WantedBy=timers.target
+EOF
+
+systemctl daemon-reload
+systemctl enable --now gh-sks.timer
+log "Systemd timer enabled (runs hourly, catches up after reboot)."
 
 # ---------------------------------------------------------------------------
-# 5. Done
+# 4. Done
 # ---------------------------------------------------------------------------
 echo ""
 log "Installation complete!"
@@ -115,5 +109,5 @@ echo "Next steps:"
 echo "  1. Edit ${CONFIG_FILE} and add mappings (format: <linux_user> <github_username>)"
 echo "  2. Run a test sync:  sudo gh-sks"
 echo ""
-echo "The cron job will sync keys automatically every hour."
-echo "Logs are written to /var/log/gh-sks.log"
+echo "The systemd timer will sync keys automatically every hour."
+echo "View logs with:  journalctl -u gh-sks"
