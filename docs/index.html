@@ -42,102 +42,101 @@
       </div>
     </div>
 
-    <!-- ───────── How It Works ───────── -->
-    <div class="row g-3 mb-5">
-      <div class="col-md-4">
-        <div class="card h-100 bg-body-tertiary">
-          <div class="card-body">
-            <span class="badge text-bg-success fs-5 mb-2">1</span>
-            <h5 class="card-title">Read mappings</h5>
-            <p class="card-text mb-0">
-              Reads user mappings from <code>/etc/gh-sks/github_authorized_users</code>.
-            </p>
-          </div>
-        </div>
-      </div>
-      <div class="col-md-4">
-        <div class="card h-100 bg-body-tertiary">
-          <div class="card-body">
-            <span class="badge text-bg-success fs-5 mb-2">2</span>
-            <h5 class="card-title">Fetch keys</h5>
-            <p class="card-text mb-0">
-              Fetches each GitHub user's public keys from
-              <code>github.com/&lt;user&gt;.keys</code>.
-            </p>
-          </div>
-        </div>
-      </div>
-      <div class="col-md-4">
-        <div class="card h-100 bg-body-tertiary">
-          <div class="card-body">
-            <span class="badge text-bg-success fs-5 mb-2">3</span>
-            <h5 class="card-title">Merge safely</h5>
-            <p class="card-text mb-0">
-              Merges keys into a managed block in <code>~/.ssh/authorized_keys</code>,
-              preserving any manually-added keys.
-            </p>
-          </div>
-        </div>
-      </div>
-    </div>
+    <!-- ───────── Commands ───────── -->
+    <h2 class="text-center fw-semibold mb-4">Commands</h2>
+    <div class="d-flex flex-column gap-4 mb-5" style="max-width:900px;margin-left:auto;margin-right:auto">
 
-    <!-- ───────── Quick reference ───────── -->
-    <div class="row g-3 mb-5">
-      <div class="col-md-6">
-        <div class="card bg-body-tertiary h-100">
-          <div class="card-body">
-            <h5 class="card-title">Configuration</h5>
-            <pre class="mb-0"><code># /etc/gh-sks/github_authorized_users
-azureuser octocat
-azureuser defunkt
-deploy    torvalds</code></pre>
+      <div class="row g-4">
+        <!-- Add -->
+        <div class="col-md-6">
+          <div class="card cmd-card h-100">
+            <div class="card-body">
+              <div class="d-flex align-items-center mb-2">
+                <i class="bi bi-person-plus text-success fs-4 me-2"></i>
+                <h5 class="card-title mb-0">Add Mapping</h5>
+              </div>
+              <p class="card-text text-body-secondary small">Grant a GitHub user SSH access to a Linux account.</p>
+              <pre class="cmd-block mb-0"><code>sudo <span class="cmd-bin">gh-sks</span> <span class="cmd-arg">--add</span> &lt;linux_user&gt; &lt;github_user&gt;</code></pre>
+            </div>
           </div>
         </div>
-      </div>
-      <div class="col-md-6">
-        <div class="card bg-body-tertiary h-100">
-          <div class="card-body">
-            <h5 class="card-title">Manage Mappings</h5>
-            <pre class="mb-0"><code>sudo gh-sks --add azureuser octocat
-sudo gh-sks --remove azureuser octocat
-gh-sks --list</code></pre>
-          </div>
-        </div>
-      </div>
-    </div>
 
-    <div class="row g-3 mb-5">
-      <div class="col-md-4">
-        <div class="card bg-body-tertiary h-100">
-          <div class="card-body">
-            <h5 class="card-title">Update</h5>
-            <pre class="mb-0"><code>sudo gh-sks --update</code></pre>
+        <!-- Remove -->
+        <div class="col-md-6">
+          <div class="card cmd-card h-100">
+            <div class="card-body">
+              <div class="d-flex align-items-center mb-2">
+                <i class="bi bi-person-dash text-danger fs-4 me-2"></i>
+                <h5 class="card-title mb-0">Remove Mapping</h5>
+              </div>
+              <p class="card-text text-body-secondary small">Revoke a GitHub user's SSH access. Run a sync afterwards to apply.</p>
+              <pre class="cmd-block mb-0"><code>sudo <span class="cmd-bin">gh-sks</span> <span class="cmd-arg">--remove</span> &lt;linux_user&gt; &lt;github_user&gt;</code></pre>
+            </div>
           </div>
         </div>
       </div>
-      <div class="col-md-4">
-        <div class="card bg-body-tertiary h-100">
-          <div class="card-body">
-            <h5 class="card-title">Uninstall</h5>
-            <pre class="mb-0"><code>sudo gh-sks --uninstall</code></pre>
-          </div>
-        </div>
-      </div>
-      <div class="col-md-4">
-        <div class="card bg-body-tertiary h-100">
-          <div class="card-body">
-            <h5 class="card-title">Help</h5>
-            <pre class="mb-0"><code>gh-sks --help</code></pre>
-          </div>
-        </div>
-      </div>
-    </div>
 
-    <!-- ───────── Requirements ───────── -->
-    <p class="text-center text-body-secondary mb-1">
-      Requires <strong>bash</strong> 4.0+, <strong>curl</strong>,
-      <strong>systemd</strong>, and network access to github.com.
-    </p>
+      <div class="row g-4">
+        <!-- List -->
+        <div class="col-md-6">
+          <div class="card cmd-card h-100">
+            <div class="card-body">
+              <div class="d-flex align-items-center mb-2">
+                <i class="bi bi-list-ul text-info fs-4 me-2"></i>
+                <h5 class="card-title mb-0">List Mappings</h5>
+              </div>
+              <p class="card-text text-body-secondary small">Show all configured Linux &harr; GitHub user mappings.</p>
+              <pre class="cmd-block mb-0"><code><span class="cmd-bin">gh-sks</span> <span class="cmd-arg">--list</span></code></pre>
+            </div>
+          </div>
+        </div>
+
+        <!-- Sync -->
+        <div class="col-md-6">
+          <div class="card cmd-card h-100">
+            <div class="card-body">
+              <div class="d-flex align-items-center mb-2">
+                <i class="bi bi-arrow-repeat text-success fs-4 me-2"></i>
+                <h5 class="card-title mb-0">Sync Keys</h5>
+              </div>
+              <p class="card-text text-body-secondary small">Run an immediate sync. Also runs automatically every hour via systemd timer.</p>
+              <pre class="cmd-block mb-0"><code>sudo <span class="cmd-bin">gh-sks</span></code></pre>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="row g-4">
+        <!-- Update -->
+        <div class="col-md-6">
+          <div class="card cmd-card h-100">
+            <div class="card-body">
+              <div class="d-flex align-items-center mb-2">
+                <i class="bi bi-download text-warning fs-4 me-2"></i>
+                <h5 class="card-title mb-0">Update</h5>
+              </div>
+              <p class="card-text text-body-secondary small">Download and install the latest release. Config and timer are preserved.</p>
+              <pre class="cmd-block mb-0"><code>sudo <span class="cmd-bin">gh-sks</span> <span class="cmd-arg">--update</span></code></pre>
+            </div>
+          </div>
+        </div>
+
+        <!-- Uninstall -->
+        <div class="col-md-6">
+          <div class="card cmd-card h-100">
+            <div class="card-body">
+              <div class="d-flex align-items-center mb-2">
+                <i class="bi bi-trash text-danger fs-4 me-2"></i>
+                <h5 class="card-title mb-0">Uninstall</h5>
+              </div>
+              <p class="card-text text-body-secondary small">Remove gh-sks, its systemd timer, config, and all managed key blocks.</p>
+              <pre class="cmd-block mb-0"><code>sudo <span class="cmd-bin">gh-sks</span> <span class="cmd-arg">--uninstall</span></code></pre>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div>
 
   </div>
 
