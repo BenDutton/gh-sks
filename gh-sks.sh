@@ -30,9 +30,10 @@ LOG_PREFIX="[gh-sks]"
 # ---------------------------------------------------------------------------
 # Logging helpers
 # ---------------------------------------------------------------------------
-log_info()  { echo "${LOG_PREFIX} INFO:  $*"; }
-log_warn()  { echo "${LOG_PREFIX} WARN:  $*" >&2; }
-log_error() { echo "${LOG_PREFIX} ERROR: $*" >&2; }
+_ts() { date -u '+%Y-%m-%dT%H:%M:%SZ'; }
+log_info()  { echo "$(_ts) ${LOG_PREFIX} INFO:  $*"; }
+log_warn()  { echo "$(_ts) ${LOG_PREFIX} WARN:  $*" >&2; }
+log_error() { echo "$(_ts) ${LOG_PREFIX} ERROR: $*" >&2; }
 
 # ---------------------------------------------------------------------------
 # Pre-flight checks
