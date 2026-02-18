@@ -111,13 +111,13 @@ if [[ "${1:-}" == "--add" ]]; then
         exit 1
     fi
     LINUX_USER="$2"
-    GITHUB_USER="$3"
+    GITHUB_USER="${3,,}"  # GitHub usernames are case-insensitive; normalise to lowercase
 
     mkdir -p "$(dirname "${CONFIG_FILE}")"
     touch "${CONFIG_FILE}"
 
-    # Check for duplicate
-    if grep -qE "^\s*${LINUX_USER}\s+${GITHUB_USER}\s*$" "${CONFIG_FILE}"; then
+    # Check for duplicate (case-insensitive on github username)
+    if grep -qiE "^\s*${LINUX_USER}\s+${GITHUB_USER}\s*$" "${CONFIG_FILE}"; then
         log_warn "Mapping already exists: ${LINUX_USER} ${GITHUB_USER}"
         exit 0
     fi
@@ -140,19 +140,19 @@ if [[ "${1:-}" == "--remove" ]]; then
         exit 1
     fi
     LINUX_USER="$2"
-    GITHUB_USER="$3"
+    GITHUB_USER="${3,,}"  # GitHub usernames are case-insensitive; normalise to lowercase
 
     if [[ ! -f "${CONFIG_FILE}" ]]; then
         log_error "Config file not found: ${CONFIG_FILE}"
         exit 1
     fi
 
-    if ! grep -qE "^\s*${LINUX_USER}\s+${GITHUB_USER}\s*$" "${CONFIG_FILE}"; then
+    if ! grep -qiE "^\s*${LINUX_USER}\s+${GITHUB_USER}\s*$" "${CONFIG_FILE}"; then
         log_warn "Mapping not found: ${LINUX_USER} ${GITHUB_USER}"
         exit 1
     fi
 
-    sed -i "/^\s*${LINUX_USER}\s\+${GITHUB_USER}\s*$/d" "${CONFIG_FILE}"
+    sed -i "/^\s*${LINUX_USER}\s\+${GITHUB_USER}\s*$/Id" "${CONFIG_FILE}"
     log_info "Removed mapping: ${LINUX_USER} <- github:${GITHUB_USER}"
     log_info "Run 'sudo gh-sks' to apply changes immediately."
     exit 0
@@ -272,6 +272,9 @@ for line in "${LINES[@]}"; do
         log_warn "Skipping malformed line: '${line}'"
         continue
     fi
+
+    # GitHub usernames are case-insensitive; normalise to lowercase
+    github_user="${github_user,,}"
 
     # Verify the Linux user exists
     if ! id "${linux_user}" &>/dev/null; then
