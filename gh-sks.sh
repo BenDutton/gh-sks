@@ -60,6 +60,56 @@ if [[ "${1:-}" == "--update" ]]; then
 fi
 
 # ---------------------------------------------------------------------------
+# Uninstall
+# ---------------------------------------------------------------------------
+if [[ "${1:-}" == "--uninstall" ]]; then
+    if [[ "$(id -u)" -ne 0 ]]; then
+        log_error "Uninstall must be run as root (use sudo)."
+        exit 1
+    fi
+
+    log_info "Uninstalling gh-sks..."
+
+    # 1. Remove cron job
+    CURRENT_CRONTAB="$(crontab -l 2>/dev/null || true)"
+    if echo "${CURRENT_CRONTAB}" | grep -qF "gh-sks"; then
+        echo "${CURRENT_CRONTAB}" | grep -vF "gh-sks" | crontab -
+        log_info "Removed cron job."
+    else
+        log_info "No cron job found — skipping."
+    fi
+
+    # 2. Remove logrotate config
+    if [[ -f /etc/logrotate.d/gh-sks ]]; then
+        rm -f /etc/logrotate.d/gh-sks
+        log_info "Removed /etc/logrotate.d/gh-sks"
+    fi
+
+    # 3. Strip managed key blocks from all users' authorized_keys
+    for auth_file in /home/*/.ssh/authorized_keys /root/.ssh/authorized_keys; do
+        [[ -f "${auth_file}" ]] || continue
+        if grep -qF "${MARKER_BEGIN}" "${auth_file}"; then
+            sed -i "/${MARKER_BEGIN}/,/${MARKER_END}/d" "${auth_file}"
+            log_info "Removed managed keys from ${auth_file}"
+        fi
+    done
+
+    # 4. Remove config directory
+    if [[ -d /etc/gh-sks ]]; then
+        rm -rf /etc/gh-sks
+        log_info "Removed /etc/gh-sks/"
+    fi
+
+    # 5. Remove self
+    SELF_PATH="$(readlink -f "$0")"
+    log_info "Removing ${SELF_PATH}..."
+    rm -f "${SELF_PATH}"
+
+    log_info "Uninstall complete."
+    exit 0
+fi
+
+# ---------------------------------------------------------------------------
 # Pre-flight checks
 # ---------------------------------------------------------------------------
 if [[ "$(id -u)" -ne 0 ]]; then

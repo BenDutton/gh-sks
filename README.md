@@ -98,19 +98,8 @@ This downloads the latest script from the repository and replaces itself in-plac
 
 ## Uninstall
 
+To fully remove gh-sks, including the cron job, config, logrotate, managed key blocks, and the script itself:
+
 ```bash
-# Remove the cron job
-sudo crontab -l | grep -v 'gh-sks' | sudo crontab -
-
-# Remove the script
-sudo rm /usr/local/bin/gh-sks
-
-# Remove the config directory
-sudo rm -rf /etc/gh-sks
-
-# Remove the logrotate config
-sudo rm -f /etc/logrotate.d/gh-sks
-
-# Remove the managed block from each user's authorized_keys
-# (between the BEGIN/END markers), or leave them as-is
+sudo gh-sks --uninstall
 ```
