@@ -86,6 +86,16 @@ ssh-ed25519 AAAA... github:defunkt
 - **curl**
 - Network access to `github.com`
 
+## Update
+
+To update `gh-sks` to the latest version:
+
+```bash
+sudo gh-sks --update
+```
+
+This downloads the latest script from the repository and replaces itself in-place. Your config and cron job are not affected.
+
 ## Uninstall
 
 ```bash

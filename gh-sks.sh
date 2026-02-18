@@ -25,6 +25,7 @@ CONFIG_FILE="/etc/gh-sks/github_authorized_users"
 MARKER_BEGIN="# --- BEGIN gh-sks managed keys ---"
 MARKER_END="# --- END gh-sks managed keys ---"
 GITHUB_API_URL="https://github.com"
+REPO_RAW_URL="https://raw.githubusercontent.com/BenDutton/gh-sks/main"
 LOG_PREFIX="[gh-sks]"
 
 # ---------------------------------------------------------------------------
@@ -34,6 +35,29 @@ _ts() { date -u '+%Y-%m-%dT%H:%M:%SZ'; }
 log_info()  { echo "$(_ts) ${LOG_PREFIX} INFO:  $*"; }
 log_warn()  { echo "$(_ts) ${LOG_PREFIX} WARN:  $*" >&2; }
 log_error() { echo "$(_ts) ${LOG_PREFIX} ERROR: $*" >&2; }
+
+# ---------------------------------------------------------------------------
+# Self-update
+# ---------------------------------------------------------------------------
+if [[ "${1:-}" == "--update" ]]; then
+    if [[ "$(id -u)" -ne 0 ]]; then
+        log_error "Update must be run as root (use sudo)."
+        exit 1
+    fi
+    SELF_PATH="$(readlink -f "$0")"
+    log_info "Updating gh-sks from ${REPO_RAW_URL}/gh-sks.sh ..."
+    TEMP="$(mktemp)"
+    if curl -fsSL --max-time 15 "${REPO_RAW_URL}/gh-sks.sh" -o "${TEMP}"; then
+        chmod 755 "${TEMP}"
+        mv "${TEMP}" "${SELF_PATH}"
+        log_info "Update complete."
+    else
+        rm -f "${TEMP}"
+        log_error "Update failed — could not download from GitHub."
+        exit 1
+    fi
+    exit 0
+fi
 
 # ---------------------------------------------------------------------------
 # Pre-flight checks
