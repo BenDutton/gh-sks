@@ -84,7 +84,29 @@ else
 fi
 
 # ---------------------------------------------------------------------------
-# 4. Done
+# 4. Install logrotate config
+# ---------------------------------------------------------------------------
+LOGROTATE_FILE="/etc/logrotate.d/gh-sks"
+if [[ ! -f "${LOGROTATE_FILE}" ]]; then
+    log "Installing logrotate config at ${LOGROTATE_FILE}"
+    cat > "${LOGROTATE_FILE}" <<'EOF'
+/var/log/gh-sks.log {
+    weekly
+    rotate 4
+    compress
+    delaycompress
+    missingok
+    notifempty
+    create 0644 root root
+}
+EOF
+    log "Logrotate config installed."
+else
+    log "${LOGROTATE_FILE} already exists — skipping."
+fi
+
+# ---------------------------------------------------------------------------
+# 5. Done
 # ---------------------------------------------------------------------------
 echo ""
 log "Installation complete!"

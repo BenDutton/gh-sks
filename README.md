@@ -23,6 +23,7 @@ This will:
 1. Download `gh-sks` to `/usr/local/bin/`.
 2. Create `/etc/gh-sks/github_authorized_users` if it doesn't already exist.
 3. Register an **hourly cron job** under root's crontab (persists across VM restarts).
+4. Install a **logrotate** config to rotate `/var/log/gh-sks.log` weekly (4 weeks retained, compressed).
 
 After running the installer, edit the config file and add your user mappings:
 
@@ -61,7 +62,7 @@ To verify the job is installed:
 crontab -l | grep gh-sks
 ```
 
-Logs are written to `/var/log/gh-sks.log`.
+Logs are written to `/var/log/gh-sks.log`. A logrotate config (`/etc/logrotate.d/gh-sks`) is installed automatically to rotate logs weekly and keep 4 compressed copies.
 
 ## How `authorized_keys` Is Managed
 
@@ -96,6 +97,9 @@ sudo rm /usr/local/bin/gh-sks
 
 # Remove the config directory
 sudo rm -rf /etc/gh-sks
+
+# Remove the logrotate config
+sudo rm -f /etc/logrotate.d/gh-sks
 
 # Remove the managed block from each user's authorized_keys
 # (between the BEGIN/END markers), or leave them as-is
