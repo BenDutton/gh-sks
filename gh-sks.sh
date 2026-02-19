@@ -317,7 +317,7 @@ fi
 # ---------------------------------------------------------------------------
 for linux_user in "${!USER_KEYS[@]}"; do
     managed_keys="${USER_KEYS[${linux_user}]}"
-    user_home="$(eval echo "~${linux_user}")"
+    user_home="$(getent passwd "${linux_user}" | cut -d: -f6)"
     ssh_dir="${user_home}/.ssh"
     auth_keys="${ssh_dir}/authorized_keys"
 
