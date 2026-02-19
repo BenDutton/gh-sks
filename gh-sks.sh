@@ -41,6 +41,7 @@ _ts() { date -u '+%Y-%m-%dT%H:%M:%SZ'; }
 log_info()  { echo "$(_ts) ${LOG_PREFIX} INFO:  $*"; }
 log_warn()  { echo "$(_ts) ${LOG_PREFIX} WARN:  $*" >&2; }
 log_error() { echo "$(_ts) ${LOG_PREFIX} ERROR: $*" >&2; }
+escape_regex() { printf '%s' "$1" | sed 's/[].[\^$*+?{}()|/]/\\&/g'; }
 
 # ---------------------------------------------------------------------------
 # --version
@@ -117,7 +118,9 @@ if [[ "${1:-}" == "--add" ]]; then
     touch "${CONFIG_FILE}"
 
     # Check for duplicate (case-insensitive on github username)
-    if grep -qiE "^\s*${LINUX_USER}\s+${GITHUB_USER}\s*$" "${CONFIG_FILE}"; then
+    LINUX_USER_RE="$(escape_regex "${LINUX_USER}")"
+    GITHUB_USER_RE="$(escape_regex "${GITHUB_USER}")"
+    if grep -qi "^\s*${LINUX_USER_RE}\s\+${GITHUB_USER_RE}\s*$" "${CONFIG_FILE}"; then
         log_warn "Mapping already exists: ${LINUX_USER} ${GITHUB_USER}"
         exit 0
     fi
@@ -147,12 +150,14 @@ if [[ "${1:-}" == "--remove" ]]; then
         exit 1
     fi
 
-    if ! grep -qiE "^\s*${LINUX_USER}\s+${GITHUB_USER}\s*$" "${CONFIG_FILE}"; then
+    LINUX_USER_RE="$(escape_regex "${LINUX_USER}")"
+    GITHUB_USER_RE="$(escape_regex "${GITHUB_USER}")"
+    if ! grep -qi "^\s*${LINUX_USER_RE}\s\+${GITHUB_USER_RE}\s*$" "${CONFIG_FILE}"; then
         log_warn "Mapping not found: ${LINUX_USER} ${GITHUB_USER}"
         exit 1
     fi
 
-    sed -i "/^\s*${LINUX_USER}\s\+${GITHUB_USER}\s*$/Id" "${CONFIG_FILE}"
+    sed -i "/^\s*${LINUX_USER_RE}\s\+${GITHUB_USER_RE}\s*$/Id" "${CONFIG_FILE}"
     log_info "Removed mapping: ${LINUX_USER} <- github:${GITHUB_USER}"
     log_info "Run 'sudo gh-sks' to apply changes immediately."
     exit 0
