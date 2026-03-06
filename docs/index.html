@@ -161,5 +161,17 @@
   </footer>
 
   <script src="https://ajax.googleapis.com/ajax/libs/bootstrap/5.3.3/js/bootstrap.min.js"></script>
+  <script>
+    document.addEventListener('click', function(e) {
+      var link = e.target.closest('a[href*="github.com"]');
+      if (link) {
+        gtag('event', 'conversion', {
+          'send_to': 'AW-989896190/J-UgCM_aiYMcEP67gtgD',
+          'value': 1.0,
+          'currency': 'AUD'
+        });
+      }
+    });
+  </script>
 </body>
 </html>
