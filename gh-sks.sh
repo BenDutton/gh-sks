@@ -64,6 +64,7 @@ Options:
   --add <linux_user> <github_user>     Add a mapping to the config file
   --remove <linux_user> <github_user>  Remove a mapping from the config file
   --list                               List all configured mappings
+  --dry-run                            Show what changes would be made without writing
   --update                             Update gh-sks to the latest release
   --uninstall                          Fully remove gh-sks from this system
   --version                            Print the installed version
@@ -234,10 +235,19 @@ if [[ "${1:-}" == "--uninstall" ]]; then
 fi
 
 # ---------------------------------------------------------------------------
+# --dry-run
+# ---------------------------------------------------------------------------
+DRY_RUN=false
+if [[ "${1:-}" == "--dry-run" ]]; then
+    DRY_RUN=true
+    log_info "Dry-run mode — no files will be modified."
+fi
+
+# ---------------------------------------------------------------------------
 # Pre-flight checks
 # ---------------------------------------------------------------------------
-if [[ "$(id -u)" -ne 0 ]]; then
-    log_error "gh-sks must be run as root."
+if [[ "$(id -u)" -ne 0 ]] && [[ "${DRY_RUN}" == false ]]; then
+    log_error "gh-sks must be run as root (use --dry-run to preview without root)."
     exit 1
 fi
 
@@ -321,6 +331,17 @@ for linux_user in "${!USER_KEYS[@]}"; do
     ssh_dir="${user_home}/.ssh"
     auth_keys="${ssh_dir}/authorized_keys"
 
+    total="$(echo -n "${managed_keys}" | grep -c '^' || true)"
+
+    # -- dry-run: print what would be written and move on ----------------
+    if [[ "${DRY_RUN}" == true ]]; then
+        log_info "[dry-run] Would write ${total} managed key(s) to ${auth_keys}:"
+        printf '%s' "${managed_keys}" | while IFS= read -r _k; do
+            echo "  ${_k}"
+        done
+        continue
+    fi
+
     # Ensure .ssh dir and authorized_keys exist with correct perms
     mkdir -p "${ssh_dir}"
     chmod 700 "${ssh_dir}"
@@ -358,8 +379,11 @@ for linux_user in "${!USER_KEYS[@]}"; do
     chmod 600 "${auth_keys}"
     chown "${linux_user}:${linux_user}" "${auth_keys}"
 
-    total="$(echo -n "${managed_keys}" | grep -c '^' || true)"
     log_info "Wrote ${total} managed key(s) to ${auth_keys}"
 done
 
-log_info "Sync complete."
+if [[ "${DRY_RUN}" == true ]]; then
+    log_info "Dry-run complete. No files were modified."
+else
+    log_info "Sync complete."
+fi
